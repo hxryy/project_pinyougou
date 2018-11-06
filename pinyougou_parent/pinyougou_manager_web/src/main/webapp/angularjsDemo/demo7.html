@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>angularjs入门demo之内置服务</title>
+    <script type="text/javascript" src="../plugins/angularjs/angular.min.js"></script>
+
+    <script type="text/javascript">
+        //初始化模块  参数一：模块名称  参数二：该模块依赖的其他模块 ，如果没有依赖其他模块，也需要声明空数组
+       var app= angular.module("myapp",[]);
+       //定义控制器 参数一：控制器名称  参数二：控制器要做的事情
+        app.controller("myctrl",function ($scope,$http) {
+            //$scope 是angularjs内置对象，$scope可以理解为angularjs的js代码与html代码数据交互的桥梁
+            //[]在json格式数据中代表数组，{}在json格式数据中代表对象
+
+            //基于$http内置对象，发起http请求后端，获取数据
+            $http.get("../brand/findAll.do").success(function (response) {
+                //声明变量接收响应结果
+                $scope.brandList=response;
+            })
+
+        });
+
+
+    </script>
+
+</head>
+<!--ng-app 声明模块， 作用：定义angularjs作用范围，就可以使用angularjs的内置指令、表达式等操作-->
+<body ng-app="myapp" ng-controller="myctrl">
+    <table>
+        <tr>
+            <th>编号</th>
+            <th>名称</th>
+            <th>首字母</th>
+        </tr>
+
+        <tr ng-repeat="brand in brandList">
+            <td>{{brand.id}}</td>
+            <td>{{brand.name}}</td>
+            <td>{{brand.firstChar}}</td>
+        </tr>
+    </table>
+</body>
+</html>

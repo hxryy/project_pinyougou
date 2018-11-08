@@ -113,7 +113,24 @@ public class GoodsController {
 	 */
 	@RequestMapping("/search")
 	public PageResult search(@RequestBody TbGoods goods, int page, int rows  ){
+		String sellerId = SecurityContextHolder.getContext().getAuthentication().getName();
+		goods.setSellerId(sellerId);
 		return goodsService.findPage(goods, page, rows);		
+	}
+	//商品上下架
+	//批量上下架
+	@RequestMapping("/updateIsMarketable")
+	public Result updateIsMarketable(Long[] ids,String isMarketable){
+		try {
+			goodsService.updateIsMarketable(ids,isMarketable);
+			return new Result(true, "上下架成功");
+		} catch (RuntimeException e) {
+			e.printStackTrace();
+			return new Result(false,e.getMessage());
+		} catch (Exception e) {
+			e.printStackTrace();
+			return new Result(false, "上下架失败");
+		}
 	}
 	
 }

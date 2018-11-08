@@ -1,13 +1,11 @@
 package com.pinyougou.sellergoods.service.impl;
 
 import com.alibaba.dubbo.config.annotation.Service;
+import com.alibaba.fastjson.JSON;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
-import com.pinyougou.mapper.TbGoodsDescMapper;
-import com.pinyougou.mapper.TbGoodsMapper;
-import com.pinyougou.pojo.TbGoods;
-import com.pinyougou.pojo.TbGoodsDesc;
-import com.pinyougou.pojo.TbGoodsExample;
+import com.pinyougou.mapper.*;
+import com.pinyougou.pojo.*;
 import com.pinyougou.pojo.TbGoodsExample.Criteria;
 import com.pinyougou.sellergoods.service.GoodsService;
 import entity.PageResult;
@@ -15,7 +13,9 @@ import groupEntity.Goods;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 服务实现层
@@ -49,7 +49,14 @@ public class GoodsServiceImpl implements GoodsService {
 
 	@Autowired
 	private TbGoodsDescMapper goodsDescMapper;
-
+	@Autowired
+	private TbItemCatMapper itemCatMapper;
+	@Autowired
+	private TbBrandMapper brandMapper;
+	@Autowired
+	private TbSellerMapper sellerMapper;
+	@Autowired
+	private TbItemMapper itemMapper;
 	/**
 	 * 增加
 	 */
@@ -65,9 +72,55 @@ public class GoodsServiceImpl implements GoodsService {
 		TbGoodsDesc goodsDesc = goods.getGoodsDesc();
 		goodsDesc.setGoodsId(tbGoods.getId());
 		goodsDescMapper.insert(goodsDesc);
+		if("1".equals(tbGoods.getIsEnableSpec())){
+			List<TbItem> itemList = goods.getItemList();
+			for (TbItem item : itemList) {
+				String title = tbGoods.getGoodsName();
+				String spec = item.getSpec();
+				Map<String,String> specMap = JSON.parseObject(spec, Map.class);
+				for(String key:specMap.keySet()){
+					title+=""+specMap.get(key);
+				}
+				item.setTitle(title);
+				setItemValue(tbGoods, goodsDesc, item);
+				itemMapper.insert(item);
+		    }
+
+		}else{
+			TbItem item = new TbItem();
+			String title = tbGoods.getGoodsName();
+			item.setTitle(title);
+			setItemValue(tbGoods, goodsDesc, item);
+			item.setSpec("{}");
+			item.setPrice(tbGoods.getPrice());
+			item.setNum(9999);
+			item.setStatus("1");
+			item.setIsDefault("1");
+			itemMapper.insert(item);
+		}
 	}
 
-	
+	private void setItemValue(TbGoods tbGoods, TbGoodsDesc goodsDesc, TbItem item) {
+		String itemImages = goodsDesc.getItemImages();
+		List<Map> imageList = JSON.parseArray(itemImages, Map.class);
+		if(imageList.size()>0){
+            String image=(String)imageList.get(0).get("url");
+            item.setImage(image);
+        }
+		item.setCategoryid(tbGoods.getCategory3Id());
+		item.setCreateTime(new Date());
+		item.setUpdateTime(new Date());
+		item.setGoodsId(tbGoods.getId());
+		item.setSellerId(tbGoods.getSellerId());
+		TbItemCat itemCat = itemCatMapper.selectByPrimaryKey(tbGoods.getCategory3Id());
+		item.setCategory(itemCat.getName());
+		TbBrand tbBrand = brandMapper.selectByPrimaryKey(tbGoods.getBrandId());
+		item.setBrand(tbBrand.getName());
+		TbSeller tbSeller = sellerMapper.selectByPrimaryKey(tbGoods.getSellerId());
+		item.setSellerId(tbSeller.getNickName());
+	}
+
+
 	/**
 	 * 修改
 	 */
@@ -92,7 +145,9 @@ public class GoodsServiceImpl implements GoodsService {
 	@Override
 	public void delete(Long[] ids) {
 		for(Long id:ids){
-			goodsMapper.deleteByPrimaryKey(id);
+		    TbGoods tbGoods = goodsMapper.selectByPrimaryKey(id);
+			tbGoods.setIsDelete("1");
+			goodsMapper.updateByPrimaryKey(tbGoods);
 		}		
 	}
 	
@@ -103,16 +158,18 @@ public class GoodsServiceImpl implements GoodsService {
 		
 		TbGoodsExample example=new TbGoodsExample();
 		Criteria criteria = example.createCriteria();
-		
+
+		criteria.andIsDeleteIsNull();
+
 		if(goods!=null){			
 						if(goods.getSellerId()!=null && goods.getSellerId().length()>0){
-				criteria.andSellerIdLike("%"+goods.getSellerId()+"%");
+				criteria.andSellerIdEqualTo(goods.getSellerId());
 			}
 			if(goods.getGoodsName()!=null && goods.getGoodsName().length()>0){
 				criteria.andGoodsNameLike("%"+goods.getGoodsName()+"%");
 			}
 			if(goods.getAuditStatus()!=null && goods.getAuditStatus().length()>0){
-				criteria.andAuditStatusLike("%"+goods.getAuditStatus()+"%");
+				criteria.andAuditStatusEqualTo(goods.getAuditStatus());
 			}
 			if(goods.getIsMarketable()!=null && goods.getIsMarketable().length()>0){
 				criteria.andIsMarketableLike("%"+goods.getIsMarketable()+"%");
@@ -135,5 +192,29 @@ public class GoodsServiceImpl implements GoodsService {
 		Page<TbGoods> page= (Page<TbGoods>)goodsMapper.selectByExample(example);		
 		return new PageResult(page.getTotal(), page.getResult());
 	}
-	
+
+	@Override
+	public void updateStatus(Long[] ids,String status) {
+		for (Long id : ids) {
+			TbGoods tbGoods = goodsMapper.selectByPrimaryKey(id);
+			tbGoods.setAuditStatus(status);
+			goodsMapper.updateByPrimaryKey(tbGoods);
+		}
+	}
+
+	@Override
+	public void updateIsMarketable(Long[] ids,String isMarketable) {
+		for (Long id : ids) {
+			TbGoods tbGoods = goodsMapper.selectByPrimaryKey(id);
+			if("1".equals(tbGoods.getAuditStatus())){
+				tbGoods.setIsMarketable(isMarketable);
+				goodsMapper.updateByPrimaryKey(tbGoods);
+			}else{
+				throw new RuntimeException("只有审核通过的商品才能上下架");
+			}
+
+		}
+	}
+
+
 }

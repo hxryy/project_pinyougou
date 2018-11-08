@@ -50,5 +50,14 @@ app.controller('baseController' ,function($scope){
 		}
 		return value;
     }
-	
+	$scope.getObjectByName=function (list,key,value) {
+		for(var i= 0;i<list.length;i++){
+			if(list[i][key]==value){
+				return list[i];
+				break;
+			}
+		}
+		return null;
+    }
+    
 });	

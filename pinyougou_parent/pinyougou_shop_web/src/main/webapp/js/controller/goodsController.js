@@ -105,6 +105,7 @@ app.controller('goodsController' ,function($scope,$controller   ,goodsService,it
     $scope.$watch("entity.goods.category1Id",function (newValue,oldValue) {
         itemCatService.findByParentId(newValue).success(function (response) {
             $scope.itemCat2List=response;
+            $scope.itemCat3List={};
         })
     })
 
@@ -134,6 +135,9 @@ app.controller('goodsController' ,function($scope,$controller   ,goodsService,it
            //理模板关联的扩展属性数据"[{"text":"内存大小"},{"text":"颜色"}]"
 			//[{"text":"内存大小"},{"text":"颜色"}]
             $scope.entity.goodsDesc.customAttributeItems =JSON.parse(response.customAttributeItems);
+        });
+        typeTemplateService.findSpecList(newValue).success(function (response) {
+            $scope.specList=response;
         })
     })
 
@@ -152,7 +156,7 @@ app.controller('goodsController' ,function($scope,$controller   ,goodsService,it
     }
 
     //初始化保存商品的组合实体类对象
-	$scope.entity={goods:{},goodsDesc:{itemImages:[]},itemList:[]};
+	$scope.entity={goods:{isEnableSpec:"1"},goodsDesc:{itemImages:[],specificationItems:[]},itemList:[]};
 
     //图片保存时，将图片对象添加到图片列表中
 	$scope.addImageEntity=function () {
@@ -162,5 +166,85 @@ app.controller('goodsController' ,function($scope,$controller   ,goodsService,it
     //删除图片列表中的对象
     $scope.deleImageEntity=function (index) {
         $scope.entity.goodsDesc.itemImages.splice(index,1);
+    }
+
+    $scope.updateSpecAttribute=function ($event, specName, specOption) {
+        var specObject = $scope.getObjectByName($scope.entity.goodsDesc.specificationItems,"attributeName",specName);
+        if(specObject!=null){
+            if($event.target.checked){
+                specObject.attributeValue.push(specOption);
+            }else {
+                var index = specObject.attributeValue.indexOf(specOption);
+                specObject.attributeValue.splice(index,1);
+                if(specObject.attributeValue.length==0){
+                    var index1 = $scope.entity.goodsDesc.specificationItems.indexOf(specObject);
+                    $scope.entity.goodsDesc.specificationItems.splice(index1,1);
+                }
+            }
+        }else{
+            $scope.entity.goodsDesc.specificationItems.push({"attributeName":specName,"attributeValue":[specOption]});
+        }
+    }
+    //组装sku列表数据
+    $scope.createItemList=function () {
+
+        //初始化sku列表对象
+        $scope.entity.itemList=[{spec:{},price:0,num:99999,status:"1",isDefault:"0"}];
+        //考虑组装spec：{"网络":"联通3G"}
+        //组装spec对象的之和勾选的规格结果集有关
+        //[{"attributeName":"网络","attributeValue":["移动3G"]}]
+        var specList = $scope.entity.goodsDesc.specificationItems;
+
+        //
+        if(specList.length==0){
+            $scope.entity.itemList=[];
+        }
+
+        for(var i=0;i<specList.length;i++){
+            //基于深克隆，构建itemList中对象的spec属性
+            $scope.entity.itemList = addColumn($scope.entity.itemList,specList[i].attributeName,specList[i].attributeValue);
+        }
+    }
+
+    //构建sku列表行与列数据
+    addColumn=function (list,specName,specOptions) {
+        //声明新的sku列表
+        var newList=[];
+
+        //list=[{spec:{},price:0,num:99999,status:"1",isDefault:"0"}]
+        for(var i=0;i<list.length;i++){
+            //{spec:{},price:0,num:99999,status:"1",isDefault:"0"}
+            var oldItem = list[i];
+            //遍历勾选的规格选项集合
+            for(var j=0;j<specOptions.length;j++){
+                //基于深克隆创建新的sku对象
+                var newItem=JSON.parse(JSON.stringify(oldItem));
+                //spec：{"网络":"联通3G"}
+                newItem.spec[specName]=specOptions[j];
+                newList.push(newItem);
+            }
+        }
+
+        return newList;
+    }
+    $scope.status=['未审核','已审核','审核未通过','关闭'];
+	$scope.updateIsMarketable=function (isMarketable) {
+        goodsService.updateIsMarketable($scope.selectIds,isMarketable).success(function (response) {
+            if(response.success()){
+                $scope.reloadList();
+            }else {
+                alert(response.message);
+            }
+        })
+    }
+    $scope.isMarketable=['下架','上架'];
+
+    $scope.itemCatList=[];
+	$scope.findAllItemCatList=function () {
+        itemCatService.findAll().success(function (response) {
+            for(var i=0;i<response.length;i++){
+                $scope.itemCatList[response[i].id]=response[i].name;
+            }
+        })
     }
 });	

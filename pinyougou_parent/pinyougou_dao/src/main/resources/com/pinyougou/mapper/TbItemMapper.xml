@@ -492,4 +492,8 @@
       seller = #{seller,jdbcType=VARCHAR}
     where id = #{id,jdbcType=BIGINT}
   </update>
+  <select id="selectAllGrounding" resultMap="BaseResultMap">
+    SELECT item.* FROM tb_item item,tb_goods goods WHERE item.goods_id=goods.id AND item.status='1' AND goods.is_marketable='1'
+  </select>
+
 </mapper>

@@ -230,7 +230,7 @@ app.controller('goodsController' ,function($scope,$controller   ,goodsService,it
     $scope.status=['未审核','已审核','审核未通过','关闭'];
 	$scope.updateIsMarketable=function (isMarketable) {
         goodsService.updateIsMarketable($scope.selectIds,isMarketable).success(function (response) {
-            if(response.success()){
+            if(response.success){
                 $scope.reloadList();
             }else {
                 alert(response.message);

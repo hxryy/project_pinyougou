@@ -1,5 +1,5 @@
 //控制层
-app.controller('searchController' ,function($scope,$controller   ,searchService){
+app.controller('searchController' ,function($scope,$controller,$location,searchService){
 
     $controller('baseController',{$scope:$scope});//继承
 
@@ -16,6 +16,15 @@ app.controller('searchController' ,function($scope,$controller   ,searchService)
         pageSize:60
     };
 
+    //获取门户网站传过来的关键字
+    var keywords = $location.search()["keywords"];
+
+    if(keywords!="undefined"){
+        //门户网站输入了关键字
+        $scope.searchMap.keywords=keywords;
+    }else{
+        $scope.searchMap.keywords="手机";
+    }
     /**
      * 商品搜索功能
      */

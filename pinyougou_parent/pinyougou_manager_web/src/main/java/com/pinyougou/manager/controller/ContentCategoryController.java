@@ -1,15 +1,15 @@
 package com.pinyougou.manager.controller;
-import java.util.List;
 
+import com.alibaba.dubbo.config.annotation.Reference;
 import com.pinyougou.content.service.ContentCategoryService;
+import com.pinyougou.pojo.TbContentCategory;
+import entity.PageResult;
+import entity.Result;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import com.alibaba.dubbo.config.annotation.Reference;
-import com.pinyougou.pojo.TbContentCategory;
 
-import entity.PageResult;
-import entity.Result;
+import java.util.List;
 /**
  * controller
  * @author Administrator
@@ -21,26 +21,26 @@ public class ContentCategoryController {
 
 	@Reference
 	private ContentCategoryService contentCategoryService;
-	
+
 	/**
 	 * 返回全部列表
 	 * @return
 	 */
 	@RequestMapping("/findAll")
-	public List<TbContentCategory> findAll(){			
+	public List<TbContentCategory> findAll(){
 		return contentCategoryService.findAll();
 	}
-	
-	
+
+
 	/**
 	 * 返回全部列表
 	 * @return
 	 */
 	@RequestMapping("/findPage")
-	public PageResult  findPage(int page,int rows){			
+	public PageResult  findPage(int page,int rows){
 		return contentCategoryService.findPage(page, rows);
 	}
-	
+
 	/**
 	 * 增加
 	 * @param contentCategory
@@ -56,7 +56,7 @@ public class ContentCategoryController {
 			return new Result(false, "增加失败");
 		}
 	}
-	
+
 	/**
 	 * 修改
 	 * @param contentCategory
@@ -71,8 +71,8 @@ public class ContentCategoryController {
 			e.printStackTrace();
 			return new Result(false, "修改失败");
 		}
-	}	
-	
+	}
+
 	/**
 	 * 获取实体
 	 * @param id
@@ -80,9 +80,9 @@ public class ContentCategoryController {
 	 */
 	@RequestMapping("/findOne")
 	public TbContentCategory findOne(Long id){
-		return contentCategoryService.findOne(id);		
+		return contentCategoryService.findOne(id);
 	}
-	
+
 	/**
 	 * 批量删除
 	 * @param ids
@@ -92,23 +92,22 @@ public class ContentCategoryController {
 	public Result delete(Long [] ids){
 		try {
 			contentCategoryService.delete(ids);
-			return new Result(true, "删除成功"); 
+			return new Result(true, "删除成功");
 		} catch (Exception e) {
 			e.printStackTrace();
 			return new Result(false, "删除失败");
 		}
 	}
-	
-		/**
+
+	/**
 	 * 查询+分页
-	 * @param brand
 	 * @param page
 	 * @param rows
 	 * @return
 	 */
 	@RequestMapping("/search")
 	public PageResult search(@RequestBody TbContentCategory contentCategory, int page, int rows  ){
-		return contentCategoryService.findPage(contentCategory, page, rows);		
+		return contentCategoryService.findPage(contentCategory, page, rows);
 	}
-	
+
 }

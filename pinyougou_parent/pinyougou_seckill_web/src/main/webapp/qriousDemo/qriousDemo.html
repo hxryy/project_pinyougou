@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>二维码生成入门demo</title>
+    <!--1、html页面中引入相应的js资源-->
+    <script type="text/javascript" src="../js/qrious.js"></script>
+
+</head>
+<body>
+    <img id="qrious">
+</body>
+<script>
+    var qr = window.qr = new QRious({
+        element: document.getElementById('qrious'),
+        size: 300,
+        value: 'https://www.baidu.com',//生成二维码的内容
+        level:"H"
+    })
+</script>
+
+</html>

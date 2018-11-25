@@ -1,11 +1,14 @@
 package com.pinyougou.order.service.impl;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import com.pinyougou.mapper.TbOrderItemMapper;
+import com.pinyougou.mapper.TbPayLogMapper;
 import com.pinyougou.order.service.OrderService;
 import com.pinyougou.pojo.TbOrderItem;
+import com.pinyougou.pojo.TbPayLog;
 import groupEntity.Cart;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.alibaba.dubbo.config.annotation.Service;
@@ -60,14 +63,21 @@ public class OrderServiceImpl implements OrderService {
 
 	@Autowired
 	private TbOrderItemMapper orderItemMapper;
+	@Autowired
+	private TbPayLogMapper payLogMapper;
 	@Override
 	public void add(TbOrder order) {
 		//基于登录用户名获取购物车列表数据
 		List<Cart> cartList = (List<Cart>) redisTemplate.boundValueOps(order.getUserId()).get();
+		//支付总金额
+		double totalPayment=0.00;
+		//定义支付关联的订单ID集合
+		List<String> ids = new ArrayList<>();
 		for (Cart cart : cartList) {
 			//后台组装订单数据
 			TbOrder tbOrder = new TbOrder();
 			long orderId = idWorker.nextId();
+			ids.add(orderId+"");
 			tbOrder.setOrderId(orderId);
 			tbOrder.setStatus("1");
 			tbOrder.setCreateTime(new Date());
@@ -91,10 +101,28 @@ public class OrderServiceImpl implements OrderService {
 				payment+=orderItem.getTotalFee().doubleValue();
 				orderItemMapper.insert(orderItem);
 			}
+			//计算支付总金额
+			totalPayment+=payment;
 			tbOrder.setPayment(new BigDecimal(payment));
 
 			orderMapper.insert(tbOrder);
 
+		}
+		//如果支付方式是微信支付，需要记录一笔支付
+		if("1".equals(order.getPaymentType())){
+			TbPayLog payLog = new TbPayLog();
+			payLog.setOutTradeNo(idWorker.nextId()+"");
+			payLog.setCreateTime(new Date());
+			payLog.setTotalFee((long)(totalPayment*100));
+			payLog.setUserId(order.getUserId());
+			payLog.setTradeState("1");//未支付
+			System.out.println(ids);
+			payLog.setOrderList(ids.toString().replace("[","").replace("]","").replace(" ",""));//一笔支付关联多个订单id,id以逗号分隔
+			payLog.setPayType("1");//微信支付
+
+			payLogMapper.insert(payLog);
+			//需要将支付日志保存一份到缓存中,基于用户将支付日志保存到缓存中
+			redisTemplate.boundHashOps("payLog").put(order.getUserId(),payLog);
 		}
 		//清楚redis中该用户记录的购物车数据
 		redisTemplate.delete(order.getUserId());
